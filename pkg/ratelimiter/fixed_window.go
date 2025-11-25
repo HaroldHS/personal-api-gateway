@@ -26,7 +26,7 @@ type FixedWindow struct {
 }
 
 func NewRateLimiterFixedWindow(windowSize int, maxRequest int) *FixedWindow {
-    return &FixedBucket{
+    return &FixedWindow{
         MaxRequest: maxRequest,
         WindowSize: windowSize,
         WindowStartTime: time.Now(),
@@ -41,7 +41,7 @@ func (fw *FixedWindow) AllowRequest() (bool, error) {
     currTime := time.Now()
     elapsedTime := currTime.Sub(fw.WindowStartTime).Seconds()
 
-    if elapsedTime >= fw.WindowSize {
+    if elapsedTime >= float64(fw.WindowSize) {
         fw.NumOfRequests = 0
         fw.WindowStartTime = currTime
     } 

@@ -43,10 +43,10 @@ func (lb *LeakyBucket) AddData(dataSize int) (bool, error) {
     currTime := time.Now()
     elapsedTime := currTime.Sub(lb.LastUpdated).Seconds()
 
-    lb.LasUpdated = currTime
+    lb.LastUpdated = currTime
 
-    lb.CurrentSize -= lb.LeakRate * elapsedTime                 // remove data based on leak rate and previous data
-    lb.CurretSize = min(lb.CurrentSize + dataSize, lb.Capacity) // add new data for calculation
+    lb.CurrentSize -= lb.LeakRate * int(elapsedTime)             // remove data based on leak rate and previous data
+    lb.CurrentSize = min(lb.CurrentSize + dataSize, lb.Capacity) // add new data for calculation
 
     if lb.CurrentSize >= dataSize {
         lb.CurrentSize -= dataSize

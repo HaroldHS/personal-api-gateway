@@ -26,14 +26,14 @@ type TokenBucketLazyRefill struct {
 
 type TokenBucket struct {
     mu    sync.Mutex
-    Rules map[string]TokenBucketLazyRefill
+    Rules map[string]*TokenBucketLazyRefill
 }
 
 func NewRateLimiterTokenBucket() *TokenBucket {
     return &TokenBucket{}
 }
 
-func (tb *TokenBucket) SetRuleConfig(rule string, refillRate int, bucketSize int) {
+func (tb *TokenBucket) SetRuleConfig(rule string, refillRate int64, bucketSize int64) {
     if _, ok := tb.Rules[rule]; !ok {
         tb.Rules[rule] = &TokenBucketLazyRefill{
             RefillRate: refillRate,
@@ -49,13 +49,13 @@ func (tb *TokenBucket) AllowRequest(rule string) (bool, error) {
     tb.mu.Lock()
     defer tb.mu.Unlock()
 
-    currTime := time.Now()
-    elapsedTime := currTime.Sub(ruleTokenBucket.LastRefill).Seconds()
-
     ruleTokenBucket, ok := tb.Rules[rule]
     if !ok {
         return false, errors.New("rule not found")
     }
+
+    currTime := time.Now()
+    elapsedTime := currTime.Sub(ruleTokenBucket.LastRefill).Seconds()
 
     // Accept if token is still available
     if ruleTokenBucket.Token >= 1 {
@@ -65,7 +65,7 @@ func (tb *TokenBucket) AllowRequest(rule string) (bool, error) {
     }
 
     // Refill the bucket when the lazy refill time is bigger than 1 second
-    if elapsedTime > time.Second() {
+    if elapsedTime > 1.00 {
         tb.Rules[rule].Token = min(ruleTokenBucket.Token + ruleTokenBucket.RefillRate, ruleTokenBucket.BucketSize)
         tb.Rules[rule].LastRefill = currTime
     }

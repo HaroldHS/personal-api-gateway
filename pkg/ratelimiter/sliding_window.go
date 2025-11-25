@@ -14,7 +14,7 @@ package ratelimiter
 import (
     "errors"
     "sync"
-    "time"
+    //"time"
 )
 
 type SlidingWindow struct {
@@ -35,7 +35,7 @@ func (sw *SlidingWindow) AllowRequest() (bool, error) {
     sw.mu.Lock()
     defer sw.mu.Unlock()
 
-    currTime := time.Now()
+    //currTime := time.Now()
 
     return false, errors.New("too many requests")
 }
