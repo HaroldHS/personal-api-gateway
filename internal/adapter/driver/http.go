@@ -76,12 +76,15 @@ func (hd *HttpDriver) HttpBasicEntryPoint(res http.ResponseWriter, req *http.Req
     req.Host = cfgEndpointObj.DestinationHost
     req.URL.Path = cfgEndpointObj.DestinationPath
     for header := range req.Header {
+        notWhiteListed := true
         for _, allowedHeader := range cfgEndpointObj.AllowedHeaders {
             if header == allowedHeader {
-                continue
+                notWhiteListed = false
             }
         }
-        req.Header.Del(header)
+        if notWhiteListed {
+            req.Header.Del(header)
+        }
     }
 
     // Define custom proxy error handler
