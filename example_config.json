@@ -1,12 +1,36 @@
 {
     "log_endpoint_url": true,
-    "endpoints": [
-        {
-            "endpoint": "/api/v1/test",
+    "endpoints": {
+        "/api/v1/login": {
+            "destination_scheme": "http",
+            "destination_host": "localhost:9000",
+            "destination_path": "/login",
             "allowed_headers": [
+                "Accept",
+                "Accept-Encoding",
+                "Accept-Language",
+                "Content-Encoding",
+                "Content-Length",
+                "Content-Type",
+                "User-Agent"
+            ]
+        },
+        "/api/v1/download": {
+            "destination_scheme": "http",
+            "destination_host": "localhost:9001",
+            "destination_path": "/download",
+            "allowed_headers": [
+                "Accept",
+                "Accept-Encoding",
+                "Accept-Language",
                 "Authorization",
-                "Content-Type"
+                "Content-Disposition",
+                "Content-Encoding",
+                "Content-Length",
+                "Content-Type",
+                "Cookie",
+                "User-Agent"
             ]
         }
-    ]
+    }
 }

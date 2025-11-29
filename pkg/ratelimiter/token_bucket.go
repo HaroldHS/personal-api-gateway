@@ -29,8 +29,10 @@ type TokenBucket struct {
     Rules map[string]*TokenBucketLazyRefill
 }
 
-func NewRateLimiterTokenBucket() *TokenBucket {
-    return &TokenBucket{}
+func NewRateLimiterTokenBucket(maxSize int64) *TokenBucket {
+    return &TokenBucket{
+        Rules: make(map[string]*TokenBucketLazyRefill, maxSize),
+    }
 }
 
 func (tb *TokenBucket) SetRuleConfig(rule string, refillRate int64, bucketSize int64) {
