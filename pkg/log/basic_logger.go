@@ -31,12 +31,8 @@ func GetLoggerInstance() *BasicLogger {
     return instance
 }
 
-func (bl *BasicLogger) Error(msg string) {
-    bl.ErrorLog.Println(msg)
-}
-
-func (bl *BasicLogger) ErrorFormat(format string, err error) {
-    bl.ErrorLog.Printf(format, err.Error())
+func (bl *BasicLogger) Error(msgFormat string, err error) {
+    bl.ErrorLog.Printf(msgFormat, err.Error())
 }
 
 func (bl *BasicLogger) Info(msg string) {

@@ -3,7 +3,7 @@ Personal API Gateway (POC only, not for production)
 
 ### Introduction
 Personal API Gateway is a Proof-Of-Concept (POC) project on how to implement API gateway from scratch.
-Personal API Gateway is a **Centralized Edget Gateway** which uses **Hexagonal Architecture**.
+Personal API Gateway is a **Centralized Edge Gateway** which uses **Hexagonal Architecture**.
 
 ### Features
 1. Request Routing

@@ -10,11 +10,11 @@ import (
     "syscall"
     "time"
 
-
     "personal-api-gateway/internal/adapter/driven"
     "personal-api-gateway/internal/adapter/driver"
     "personal-api-gateway/internal/core/domain"
     "personal-api-gateway/internal/core/service"
+    "personal-api-gateway/internal/core/util"
     "personal-api-gateway/pkg/log"
     "personal-api-gateway/pkg/ratelimiter"
 )
@@ -23,17 +23,16 @@ func main() {
     logger := log.GetLoggerInstance()
 
     logger.Info("[main] Load JSON config.")
-    configFile, err := os.Open("./example_config.json")
+    configBytes, err := os.ReadFile("./example_config.json")
     if err != nil {
-        logger.ErrorFormat("Failed to open JSON config file: %s.", err)
+        logger.Error("Failed to read JSON config file: %v.", err)
         return
     }
-    defer configFile.Close()
 
     var config domain.JsonConfig
-    err = json.NewDecoder(configFile).Decode(&config)
+    err = json.Unmarshal(configBytes, &config)
     if err != nil {
-        logger.ErrorFormat("[main] Failed to decode JSON config file: %s.", err)
+        logger.Error("[main] Failed to unmarshal JSON config: %v.", err)
         return
     }
 
@@ -42,11 +41,19 @@ func main() {
     keyValueDb := service.New(builtInKeyValueDbRepo)
 
     logger.Info("[main] Starting rate limiter.")
-    rateLimiter := ratelimiter.NewRateLimiterTokenBucket()
+    rateLimiter := ratelimiter.NewRateLimiterTokenBucket(1000)
+
+    logger.Info("[main] Starting HTTP proxies.")
+    httpProxies, err := util.NewBasicHttpProxies(config)
+    if err != nil {
+        logger.Error("[main] Failed to start proxies instances: %v.", err)
+        return
+    }
 
     logger.Info("[main] Initializing handlers.")
-    httpDriver := driver.NewHttpDriver(config, keyValueDb, rateLimiter)
+    httpDriver := driver.NewHttpDriver(&config, httpProxies, keyValueDb, rateLimiter)
 
+    // Route all HTTP requests to a single entry point
     http.HandleFunc("/", httpDriver.HttpBasicEntryPoint)
 
     logger.Info("[main] Starting API gateway.")
@@ -56,7 +63,7 @@ func main() {
 
     go func() {
         if err := httpServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-            logger.ErrorFormat("[main] Failed to serve connection: %v.", err)
+            logger.Error("[main] Failed to serve connection: %v.", err)
         }
         logger.Info("[main] Stop serving new connections.")
     }()
@@ -69,7 +76,7 @@ func main() {
     defer shutdownRelease()
 
     if err := httpServer.Shutdown(shutdownCtx); err != nil {
-        logger.ErrorFormat("[main] Failed to shutdown HTTP server: %v.", err)
+        logger.Error("[main] Failed to shutdown HTTP server: %v.", err)
     }
 
     logger.Info("[main] Graceful shutdown completed.")

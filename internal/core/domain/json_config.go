@@ -1,11 +1,13 @@
 package domain
 
 type JsonConfig struct {
-    LogEndpointUrl bool             `json:"log_endpoint_url"`
-    Endpoints      []EndpointObject `json:"endpoints"`
+    LogEndpointUrl bool                      `json:"log_endpoint_url"`
+    Endpoints      map[string]EndpointObject `json:"endpoints"`
 }
 
 type EndpointObject struct {
-    Endpoint       string   `json:"endpoint"`
-    AllowedHeaders []string `json:"allowed_headers"`
+    DestinationScheme   string   `json:"destination_scheme"`
+    DestinationHost     string   `json:"destination_host"`
+    DestinationPath     string   `json:"destination_path"`
+    AllowedHeaders      []string `json:"allowed_headers"`
 }
