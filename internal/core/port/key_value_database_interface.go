@@ -5,6 +5,6 @@ type KeyValueDatabaseRepository interface {
     Insert(key string, value any, ttl int64) error
 }
 
-type KeyValueDatabaseService interface {
+type KeyValueDatabasePortInterface interface {
     Save(key string, value any, ttl int64) error
 }

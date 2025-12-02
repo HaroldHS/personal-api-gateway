@@ -10,7 +10,7 @@ type KeyValueDatabaseService struct {
     keyValueDatabaseRepository port.KeyValueDatabaseRepository
 }
 
-func New(keyValueDbRepository port.KeyValueDatabaseRepository) *KeyValueDatabaseService {
+func NewKeyValueDatabase(keyValueDbRepository port.KeyValueDatabaseRepository) *KeyValueDatabaseService {
     return &KeyValueDatabaseService{
         keyValueDatabaseRepository: keyValueDbRepository,
     }

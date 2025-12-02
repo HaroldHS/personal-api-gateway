@@ -7,7 +7,7 @@ import (
     "time"
 
     "personal-api-gateway/internal/core/domain"
-    "personal-api-gateway/internal/core/service"
+    "personal-api-gateway/internal/core/port"
     "personal-api-gateway/internal/core/util"
     "personal-api-gateway/pkg/log"
     "personal-api-gateway/pkg/ratelimiter"
@@ -16,17 +16,22 @@ import (
 type HttpDriver struct {
     JsonConfig             *domain.JsonConfig
     HttpProxies            *util.BasicHttpProxies
-    KeyValueDatabase       *service.KeyValueDatabaseService
+    HttpModifier           port.HttpModifierPortInterface
+    KeyValueDatabase       port.KeyValueDatabasePortInterface
     TokenBucketRateLimiter *ratelimiter.TokenBucket
 }
 
 func NewHttpDriver(
     jsonConfig *domain.JsonConfig,
     httpProxies *util.BasicHttpProxies,
-    keyValueDb *service.KeyValueDatabaseService,
+    httpModifier port.HttpModifierPortInterface,
+    keyValueDb port.KeyValueDatabasePortInterface,
     tokenBucketRateLimiter *ratelimiter.TokenBucket) *HttpDriver {
 
-    httpDriver := &HttpDriver{}
+    httpDriver := &HttpDriver{
+        HttpModifier: httpModifier,
+        KeyValueDatabase: keyValueDb,
+    }
 
     if !reflect.DeepEqual(jsonConfig, domain.JsonConfig{}) {
         httpDriver.JsonConfig = jsonConfig
@@ -34,10 +39,6 @@ func NewHttpDriver(
 
     if !reflect.DeepEqual(httpProxies, util.BasicHttpProxies{}) {
         httpDriver.HttpProxies = httpProxies
-    }
-
-    if !reflect.DeepEqual(keyValueDb, service.KeyValueDatabaseService{}) {
-        httpDriver.KeyValueDatabase = keyValueDb
     }
 
     if !reflect.DeepEqual(tokenBucketRateLimiter, ratelimiter.TokenBucket{}) {
@@ -80,21 +81,7 @@ func (hd *HttpDriver) HttpBasicEntryPoint(res http.ResponseWriter, req *http.Req
     requestedHost := req.Host
 
     // Modify HTTP request
-    req.Host = cfgEndpointObj.DestinationHost
-    req.URL.Path = cfgEndpointObj.DestinationPath
-    req.RequestURI = cfgEndpointObj.DestinationPath
-    for header := range req.Header {
-        notWhiteListed := true
-        for _, allowedHeader := range cfgEndpointObj.AllowedHeaders {
-            if header == allowedHeader {
-                notWhiteListed = false
-            }
-        }
-        if notWhiteListed {
-            req.Header.Del(header)
-        }
-    }
-    req.Header.Set("X-Forwarded-For", req.RemoteAddr)
+    hd.HttpModifier.ModifyRequestHeader(req, cfgEndpointObj)
 
     // Define custom proxy error handler
     destProxy.ErrorHandler = func (res http.ResponseWriter, req *http.Request, err error) {

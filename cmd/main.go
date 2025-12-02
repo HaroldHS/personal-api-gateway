@@ -36,10 +36,6 @@ func main() {
         return
     }
 
-    logger.Info("[main] Starting built in key value database.")
-    builtInKeyValueDbRepo := driven.NewBuiltInKeyValueDatabase()
-    keyValueDb := service.New(builtInKeyValueDbRepo)
-
     logger.Info("[main] Starting rate limiter.")
     rateLimiter := ratelimiter.NewRateLimiterTokenBucket(1000)
 
@@ -50,8 +46,14 @@ func main() {
         return
     }
 
+    logger.Info("[main] Initializing services.")
+    builtInKeyValueDbRepo := driven.NewBuiltInKeyValueDatabase()
+    keyValueDb := service.NewKeyValueDatabase(builtInKeyValueDbRepo)
+
+    httpModifier := service.NewHttpModifier()
+
     logger.Info("[main] Initializing handlers.")
-    httpDriver := driver.NewHttpDriver(&config, httpProxies, keyValueDb, rateLimiter)
+    httpDriver := driver.NewHttpDriver(&config, httpProxies, httpModifier, keyValueDb, rateLimiter)
 
     // Route all HTTP requests to a single entry point
     http.HandleFunc("/", httpDriver.HttpBasicEntryPoint)
