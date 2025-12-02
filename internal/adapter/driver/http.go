@@ -71,10 +71,18 @@ func (hd *HttpDriver) HttpBasicEntryPoint(res http.ResponseWriter, req *http.Req
         return
     }
 
-    // Modify HTTP request
     cfgEndpointObj := hd.JsonConfig.Endpoints[req.URL.Path]
+    if cfgEndpointObj.DestinationScheme != "http" && cfgEndpointObj.DestinationScheme != "https" {
+        http.Error(res, "Internal Server Error", http.StatusInternalServerError)
+        return
+    }
+
+    requestedHost := req.Host
+
+    // Modify HTTP request
     req.Host = cfgEndpointObj.DestinationHost
     req.URL.Path = cfgEndpointObj.DestinationPath
+    req.RequestURI = cfgEndpointObj.DestinationPath
     for header := range req.Header {
         notWhiteListed := true
         for _, allowedHeader := range cfgEndpointObj.AllowedHeaders {
@@ -86,12 +94,19 @@ func (hd *HttpDriver) HttpBasicEntryPoint(res http.ResponseWriter, req *http.Req
             req.Header.Del(header)
         }
     }
+    req.Header.Set("X-Forwarded-For", req.RemoteAddr)
 
     // Define custom proxy error handler
     destProxy.ErrorHandler = func (res http.ResponseWriter, req *http.Request, err error) {
         logger.Error("[HttpBasicEntryPoint] Proxy error occurred: %v", err)
         http.Error(res, "Internal Server Error", http.StatusInternalServerError)
         return
+    }
+
+    // Modify HTTP response
+    destProxy.ModifyResponse = func(res *http.Response) error {
+        res.Header.Set("Host", requestedHost)
+        return nil
     }
 
     // Serve the request through the reverse proxy
