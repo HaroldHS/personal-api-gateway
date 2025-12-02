@@ -48,6 +48,10 @@ func NewHttpDriver(
     return httpDriver
 }
 
+// @Summary: Entry point of all incoming HTTP request.
+// @Description: HTTP handler function of an entry point for redirecting all incoming HTTP request to intended service.
+//
+// @Params similar to default HTTP handler function signature
 func (hd *HttpDriver) HttpBasicEntryPoint(res http.ResponseWriter, req *http.Request) {
     logger := log.GetLoggerInstance()
 
@@ -80,7 +84,7 @@ func (hd *HttpDriver) HttpBasicEntryPoint(res http.ResponseWriter, req *http.Req
 
     requestedHost := req.Host
 
-    // Modify HTTP request
+    // Use the HTTP modifier service to modify HTTP request
     hd.HttpModifier.ModifyRequestHeader(req, cfgEndpointObj)
 
     // Define custom proxy error handler
@@ -92,6 +96,7 @@ func (hd *HttpDriver) HttpBasicEntryPoint(res http.ResponseWriter, req *http.Req
 
     // Modify HTTP response
     destProxy.ModifyResponse = func(res *http.Response) error {
+        // Update `Host` header to cover up the address of back-end service
         res.Header.Set("Host", requestedHost)
         return nil
     }

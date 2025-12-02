@@ -1,6 +1,7 @@
 package keyvaluedatabase
 
 import (
+    "errors"
     "time"
 )
 
@@ -15,19 +16,85 @@ func NewKeyValueDatabase(size int64) *KeyValueHashMap {
     }
 }
 
-// TODO: Delete function
 // @Summary: Delete inserted key-value object.
 // @Description: Delete inserted key-value object based on given key.
 //
 // @Param key string "e.g. `TestKey`"
 func (kvhm *KeyValueHashMap) Delete(key string) {
-    //index := kvhm.calculateHash(key)
+    index := kvhm.calculateHash(key)
+    currentObj := kvhm.List[index]
+
+    if currentObj == nil {
+        return
+    }
+
+    // Return directly in case of direct & single element
+    if currentObj.Key == key && currentObj.Next == nil {
+        kvhm.List[index] = &KeyValue{}
+        return
+    }
+
+    // Predefined epsilon to prevent infinite loop in case of malformed linked list
+    counter := 0
+    epsilon := 100000
+    // Otherwise, traverse the array of linked list
+    for currentObj != nil && counter < epsilon {
+        if currentObj.Key == key && currentObj.Next != nil {
+            kvhm.List[index] = kvhm.List[index].Next
+            return
+        }
+
+        counter += 1
+        currentObj = currentObj.Next
+    }
+
+    return
 }
 
-// TODO: Getter function
+// @Summary: Get an object based on key.
+// @Description: Get a saved value object based on given key.
+//
+// @Param key string "e.g. `TestKey`"
+func (kvhm *KeyValueHashMap) Get(key string) (any, error) {
+    currTime := time.Now()
+    index := kvhm.calculateHash(key)
+    currentObj := kvhm.List[index]
+
+    if currentObj == nil {
+        return nil, errors.New("key not found")
+    }
+
+    // Return value directly in case of direct match
+    if currentObj.Key == key {
+        return currentObj.Value, nil
+    }
+
+    // Predefined epsilon to prevent infinite loop in case of malformed linked list
+    counter := 0
+    epsilon := 100000
+    // Otherwise, traverse the array of linked list
+    for currentObj != nil && counter < epsilon {
+        // If the current key-value object with predefined key is exist but expired, remove it and return not found
+        if currentObj.Key == key && currentObj.IsExpireSet && currentObj.ExpiredAt.Before(currTime) {
+            kvhm.List[index] = kvhm.List[index].Next
+            return nil, errors.New("key not found")
+        }
+
+        // Return intended value in case of matching key
+        if currentObj.Key == key {
+            return currentObj.Value, nil
+        }
+
+        counter += 1
+        currentObj = currentObj.Next
+    }
+
+    // Fallback as reaching this statement means no matching key has been founded
+    return nil, errors.New("key not found")
+}
 
 // @Summary: Insert a new key-value object.
-// @Description: Insert a new key-value object by including TTL/Time to Live (in seconds).
+// @Description: Insert a new key-value object by including TTL/Time to Live (in seconds) with Lazy Prefill.
 //               ttl == 0 means no expiration.
 //
 // @Param key   string "e.g. `TestKey`"
@@ -66,13 +133,6 @@ func (kvhm *KeyValueHashMap) Insert(key string, value any, ttl int64) error {
     counter := 0
     currentObj := kvhm.List[index]
     for currentObj != nil && counter < epsilon {
-        // If the current key-value object with predefined key is exist but expired, replace it with a new one
-        if currentObj.Key == key && currentObj.IsExpireSet && currentObj.ExpiredAt.Before(currTime) {
-            newKeyValue = kvhm.List[index].Next
-            kvhm.List[index] = newKeyValue
-            return nil
-        }
-
         // If the current key-value object with predefined key is exist, replace the value with a new one
         if currentObj.Key == key {
             currentObj.Value = value
@@ -92,6 +152,7 @@ func (kvhm *KeyValueHashMap) Insert(key string, value any, ttl int64) error {
         counter += 1
         currentObj = currentObj.Next
     }
+
     // Insert new entry at the end of the Linked List
     currentObj.Next = newKeyValue
     return nil
